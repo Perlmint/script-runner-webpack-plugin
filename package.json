@@ -1,0 +1,24 @@
+{
+  "name": "script-runner-webpack-plugin",
+  "version": "0.1.0",
+  "description": "Simple script runner plugin for webpack - support watching source files",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -p src"
+  },
+  "author": "Gyusun Yeom <omniavinco@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/glob": "^5.0.32",
+    "@types/lodash": "^4.14.74",
+    "@types/webpack": "^3.0.10",
+    "typescript": "^2.5.2"
+  },
+  "dependencies": {
+    "glob": "^7.1.2",
+    "lodash": "^4.17.4"
+  },
+  "peerDependencies": {
+    "webpack": "^3.5.6"
+  }
+}
