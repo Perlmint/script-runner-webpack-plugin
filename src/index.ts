@@ -10,10 +10,10 @@ export interface PluginOption {
     script: string;
 }
 
-export default class ShellRunnerPlugin {
+export default class ScriptRunnerPlugin {
     protected startTime = Date.now();
     protected prevTimestamps: {[file: string]: number} = {};
-    protected sources: string[];
+    protected sources: string[] = [];
 
     public constructor(private option: PluginOption) {
     }
@@ -29,14 +29,14 @@ export default class ShellRunnerPlugin {
                 this.option.sources, pattern => glob.sync(pattern)
             )), uri => path.resolve(uri));
             const changedFiles = _.keys(compilation.fileTimestamps).filter(
-                watchfile => _.includes(sources, watchfile) && (this.prevTimestamps[watchfile] || this.startTime) < (compilation.fileTimestamps[watchfile] || Infinity)
+                watchfile => _.includes(sources, watchfile) && ((this.prevTimestamps[watchfile] || this.startTime) < (compilation.fileTimestamps[watchfile] || Infinity))
             );
 
-            this.sources = sources;
-
-            if (compilation.fileTimestamps.length !== 0 && changedFiles.length === 0) {
+            if (this.sources.length !== 0 && compilation.fileTimestamps.length !== 0 && changedFiles.length === 0) {
                 return;
             }
+
+            this.sources = sources;
         }
         try {
             child_process.execSync(this.option.script);
