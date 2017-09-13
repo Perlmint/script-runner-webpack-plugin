@@ -20,5 +20,8 @@
   },
   "peerDependencies": {
     "webpack": "^3.5.6"
-  }
+  },
+  "keywords": [
+    "webpack", "plugin", "shell", "script"
+  ]
 }
