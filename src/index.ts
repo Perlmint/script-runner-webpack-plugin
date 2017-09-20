@@ -39,7 +39,9 @@ export default class ScriptRunnerPlugin {
             this.sources = sources;
         }
         try {
-            child_process.execSync(this.option.script);
+            child_process.execSync(this.option.script, {
+                cwd: compilation.compiler.options.context
+            });
         } catch (e) {
             compilation.errors.push(e.toString());
         }
