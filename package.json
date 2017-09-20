@@ -1,6 +1,6 @@
 {
   "name": "script-runner-webpack-plugin",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Simple script runner plugin for webpack - support watching source files",
   "main": "index.js",
   "scripts": {
