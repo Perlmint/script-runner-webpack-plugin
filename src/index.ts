@@ -19,7 +19,7 @@ export default class ScriptRunnerPlugin {
     }
 
     public apply(compiler: wp.Compiler) {
-        compiler.plugin("compilation", this.compilation.bind(this));
+        compiler.plugin("this-compilation", this.compilation.bind(this));
         compiler.plugin("after-emit", this.afterEmit.bind(this));
     }
 
