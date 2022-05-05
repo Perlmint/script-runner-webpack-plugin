@@ -1,55 +1,63 @@
-import wp = require("webpack");
-import fs = require("fs");
-import path = require("path");
-import child_process = require("child_process");
-import glob = require("glob");
-import _ = require("lodash");
+import wp = require('webpack');
+import path = require('path');
+import child_process = require('child_process');
+import glob = require('glob');
 
 export interface PluginOption {
     sources?: string[];
+    description?: string;
     script: string;
 }
 
+type ExtractHook<T> = T extends import('tapable').AsyncSeriesHook<infer A, infer B> ? A : never;
+
 export default class ScriptRunnerPlugin {
-    protected startTime = Date.now();
-    protected prevTimestamps: {[file: string]: number} = {};
+    protected static scriptName = 'ScriptRunnerPlugin';
+    protected lastTimeStamp = 0;
     protected sources: string[] = [];
 
     public constructor(private option: PluginOption) {
     }
 
     public apply(compiler: wp.Compiler) {
-        compiler.plugin("this-compilation", this.compilation.bind(this));
-        compiler.plugin("after-emit", this.afterEmit.bind(this));
+        compiler.hooks.beforeCompile.tapPromise(ScriptRunnerPlugin.scriptName, this.beforeCompile.bind(this, compiler));
+        compiler.hooks.thisCompilation.tap(ScriptRunnerPlugin.scriptName, this.thisCompilation.bind(this));
+        compiler.hooks.afterDone.tap(ScriptRunnerPlugin.scriptName, this.afterDone.bind(this));
     }
 
-    private compilation(compilation: wp.Compilation) {
+    private async beforeCompile(compiler: wp.Compiler): Promise<void> {
         if (this.option.sources !== undefined) {
-            const sources = _.map(_.flatten(_.map(
-                this.option.sources, pattern => glob.sync(pattern)
-            )), uri => path.resolve(uri));
-            const changedFiles = _.keys(compilation.fileTimestamps).filter(
-                watchfile => _.includes(sources, watchfile) && ((this.prevTimestamps[watchfile] || this.startTime) < (compilation.fileTimestamps[watchfile] || Infinity))
-            );
+            const sources = this.option.sources.map(pattern => glob.sync(pattern)).flat().map(uri => path.resolve(uri));
 
-            if (this.sources.length !== 0 && compilation.fileTimestamps.length !== 0 && changedFiles.length === 0) {
-                return;
+            if (compiler.fileTimestamps != null) {
+                const fileChanged = sources.some((source) => {
+                    const ts = compiler.fileTimestamps.get(source);
+                    return this.lastTimeStamp < ((ts != null && ts != 'ignore') ? ts.safeTime : Infinity);
+                });
+
+                if (this.sources.length !== 0 && !fileChanged) {
+                    return;
+                }
             }
 
             this.sources = sources;
         }
+        const logger = compiler.getInfrastructureLogger(ScriptRunnerPlugin.scriptName);
+        logger.info(`run script${this.option.description ? ` - ${this.option.description}` : ''}`);
         try {
             child_process.execSync(this.option.script, {
-                cwd: compilation.compiler.options.context
+                cwd: compiler.options.context
             });
         } catch (e) {
-            compilation.errors.push(e.toString());
+            logger.error(e);
         }
     }
 
-    private afterEmit(compilation: wp.Compilation, callback: (err?: Error) => void) {
-        this.prevTimestamps = compilation.fileTimestamps;
-        compilation.fileDependencies.push(...this.sources);
-        callback();
+    private thisCompilation(compilation: wp.Compilation) {
+        compilation.fileDependencies.addAll(this.sources);
+    }
+
+    private afterDone(stats: wp.Stats) {
+        this.lastTimeStamp = stats.compilation.startTime;
     }
 }
